@@ -18,6 +18,11 @@ path = "src/bin/indexer.rs"
 name = "searcher"
 path = "src/bin/searcher.rs"
 
+[features]
+s3-localstack-tests = []
+default = ["postgres"]
+postgres = ["quickwit-metastore/postgres"]
+
 [dependencies]
 anyhow = { workspace = true }
 aws_lambda_events = "0.15.0"
@@ -51,7 +56,8 @@ quickwit-doc-mapper = { workspace = true }
 quickwit-index-management = { workspace = true }
 quickwit-indexing = { workspace = true }
 quickwit-ingest = { workspace = true }
-quickwit-metastore = { workspace = true }
+quickwit-janitor = { workspace = true }
+quickwit-metastore = { version = "0.8.2", path = "../quickwit-metastore", features = ["postgres"] }
 quickwit-proto = { workspace = true }
 quickwit-rest-client = { workspace = true }
 quickwit-search = { workspace = true }

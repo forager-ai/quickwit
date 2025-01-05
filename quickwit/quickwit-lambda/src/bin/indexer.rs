@@ -21,6 +21,9 @@ use lambda_runtime::service_fn;
 use quickwit_lambda::indexer::handler;
 use quickwit_lambda::logger;
 
+#[cfg(not(feature = "postgres"))]
+compile_error!("postgres feature must be enabled");
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     logger::setup_lambda_tracer()?;

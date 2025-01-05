@@ -23,8 +23,9 @@ use once_cell::sync::Lazy;
 
 pub const CONFIGURATION_TEMPLATE: &str = "version: 0.6
 node_id: lambda-indexer
-metastore_uri: s3://${QW_LAMBDA_METASTORE_BUCKET}/index
-default_index_root_uri: s3://${QW_LAMBDA_INDEX_BUCKET}/index
+cluster_id: lambda-ephemeral
+metastore_uri: ${QW_LAMBDA_METASTORE_URI}
+default_index_root_uri: s3://${QW_LAMBDA_INDEX_BUCKET}/${QW_LAMBDA_INDEX_PREFIX:-index}
 data_dir: /tmp
 ";
 
@@ -37,3 +38,47 @@ pub static INDEX_ID: Lazy<String> =
 
 pub static DISABLE_MERGE: Lazy<bool> =
     Lazy::new(|| var("QW_LAMBDA_DISABLE_MERGE").is_ok_and(|v| v.as_str() == "true"));
+
+#[cfg(test)]
+mod tests {
+
+    use quickwit_config::{ConfigFormat, NodeConfig};
+
+    use super::*;
+
+    #[tokio::test]
+    #[serial_test::file_serial(with_env)]
+    async fn test_load_config() {
+        let bucket = "mock-test-bucket";
+        std::env::set_var("QW_LAMBDA_METASTORE_URI", "s3://mock-test-bucket/index");
+        std::env::set_var("QW_LAMBDA_INDEX_BUCKET", bucket);
+        std::env::set_var(
+            "QW_LAMBDA_INDEX_CONFIG_URI",
+            "s3://mock-index-config-bucket",
+        );
+        std::env::set_var("QW_LAMBDA_INDEX_ID", "lambda-test");
+
+        let node_config = NodeConfig::load(ConfigFormat::Yaml, CONFIGURATION_TEMPLATE.as_bytes())
+            .await
+            .unwrap();
+        //
+        assert_eq!(
+            node_config.data_dir_path.to_string_lossy(),
+            "/tmp",
+            "only `/tmp` is writeable in AWS Lambda"
+        );
+        assert_eq!(
+            node_config.default_index_root_uri,
+            "s3://mock-test-bucket/index"
+        );
+        assert_eq!(
+            node_config.metastore_uri.to_string(),
+            "s3://mock-test-bucket/index"
+        );
+
+        std::env::remove_var("QW_LAMBDA_METASTORE_URI");
+        std::env::remove_var("QW_LAMBDA_INDEX_BUCKET");
+        std::env::remove_var("QW_LAMBDA_INDEX_CONFIG_URI");
+        std::env::remove_var("QW_LAMBDA_INDEX_ID");
+    }
+}
