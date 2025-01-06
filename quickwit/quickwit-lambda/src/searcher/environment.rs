@@ -22,13 +22,18 @@ use std::env::var;
 use once_cell::sync::Lazy;
 
 pub(crate) const CONFIGURATION_TEMPLATE: &str = r#"
-version: 0.6
+version: 0.8
 node_id: lambda-searcher
 metastore_uri: ${QW_LAMBDA_METASTORE_URI}
 default_index_root_uri: s3://${QW_LAMBDA_INDEX_BUCKET}/${QW_LAMBDA_INDEX_PREFIX:-index}
 data_dir: /tmp
 searcher:
   partial_request_cache_capacity: ${QW_LAMBDA_PARTIAL_REQUEST_CACHE_CAPACITY:-64M}
+  fast_field_cache_capacity: 200G
+  split_footer_cache_capacity: 1G
+  max_num_concurrent_split_searches: 70000
+  max_num_concurrent_split_streams: 70000
+  aggregation_memory_limit: 5G
 "#;
 
 pub(crate) static INDEX_ID: Lazy<String> =
